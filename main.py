@@ -108,7 +108,8 @@ async def register_user(user: UserRegister):
         if existing_user:
             raise HTTPException(status_code=400, detail="Account with this Phone or Email already exists.")
 
-        hashed_password = pwd_context.hash(user.password)
+        # Hash password securely with 72-byte truncation to satisfy bcrypt limits
+        hashed_password = pwd_context.hash(user.password[:72])
 
         new_user = {
             "uid": user.uid,
@@ -200,7 +201,7 @@ async def generate_forecast(req: ForecastRequest):
             "rain_forecast": "Expected in 48 hours"
         },
         "chart_data": {
-            "demand": [100 + (i * 2) + random.randint(-5, 5) for i in range(30)],
+            "demand": [100 + (i * 2) + random.Intent(-5, 5) for i in range(30)] if hasattr(random, 'Intent') else [100 + (i * 2) + random.randint(-5, 5) for i in range(30)],
             "supply": [110 + random.randint(-10, 10) for i in range(30)]
         }
     }
