@@ -24,10 +24,10 @@ app.add_middleware(
 )
 
 # -------------------------------------------------------------
-# DYNAMIC TEMPLATES FOLDER RESOLUTION
+# DYNAMIC TEMPLATES FOLDER RESOLUTION (Fixed for Render)
 # -------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TEMPLATES_DIR = os.path.join(BASE_DIR, r"D:\hackathon-2026\templates")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
 def get_template_response(filename: str):
     file_path = os.path.join(TEMPLATES_DIR, filename)
@@ -160,23 +160,20 @@ async def login_with_password(credentials: PasswordLogin):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
-from fastapi import FastAPI, HTTPException
-# (Assuming 'db' is your connected MongoDB/Motor database instance)
-
 @app.get("/api/dashboard-stats")
 async def get_dashboard_stats():
     try:
-        # Count actual records from your database collections
-        # Adjust collection names ("users", "fpos", "orders") to match your DB schema
-        fpo_count = await db["users"].count_documents({"role": "FPO"})
-        farmer_count = await db["users"].count_documents({"role": "Farmer"})
-        order_count = await db["orders"].count_documents({})
-        
-        # Calculate total revenue from orders (if you have an 'amount' or 'total' field)
-        pipeline = [{"$group": {"_id": None, "totalRevenue": {"$sum": "$amount" }}}]
-        revenue_cursor = db["orders"].aggregate(pipeline)
-        revenue_result = await revenue_cursor.to_list(length=1)
-        total_revenue = revenue_result[0]["totalRevenue"] if revenue_result else 0
+        def fetch_stats():
+            fpo_count = users_collection.count_documents({"role": "FPO"})
+            farmer_count = users_collection.count_documents({"role": "Farmer"})
+            order_count = orders_collection.count_documents({})
+            
+            pipeline = [{"$group": {"_id": None, "totalRevenue": {"$sum": "$amount"}}}]
+            revenue_result = list(orders_collection.aggregate(pipeline))
+            total_revenue = revenue_result[0]["totalRevenue"] if revenue_result else 0
+            return fpo_count, farmer_count, order_count, total_revenue
+
+        fpo_count, farmer_count, order_count, total_revenue = await asyncio.to_thread(fetch_stats)
 
         return {
             "fpos": fpo_count,
@@ -185,7 +182,6 @@ async def get_dashboard_stats():
             "revenue": total_revenue
         }
     except Exception as e:
-        # Fallback or error handling if database isn't hooked up yet
         return {
             "fpos": 0,
             "farmers": 0,
@@ -211,4 +207,5 @@ async def generate_forecast(req: ForecastRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
