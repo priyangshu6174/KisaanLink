@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced AI Crop & Climate Forecast Engine</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #07090E;
+      --panel-bg: #111622;
+      --card-bg: #182030;
+      --border-color: #2A364F;
+      --text-main: #F0F4F8;
+      --text-muted: #8CA0B3;
+      --accent-blue: #38BDF8;
+      --accent-green: #34D399;
+      --accent-orange: #FBBF24;
+      --accent-purple: #A78BFA;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); padding: 20px; }
+
+    .forecast-wrapper {
+      background-color: var(--panel-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      max-width: 1400px;
+      margin: 0 auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      overflow: hidden;
+    }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 30px; border-bottom: 1px solid var(--border-color); background: #0A0E17;
+    }
+    .brand-logo { font-weight: 700; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; color: var(--accent-green); }
+    .btn-back {
+      background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--accent-blue);
+      padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;
+    }
+    .btn-back:hover { background: rgba(56, 189, 248, 0.2); }
+
+    .controls-bar {
+      display: grid; grid-template-columns: 2fr 1fr 2fr 1.5fr; gap: 15px; padding: 25px 30px;
+      background: rgba(24, 32, 48, 0.5); border-bottom: 1px solid var(--border-color); align-items: center;
+    }
+    .control-group label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .control-group select, .control-group input {
+      width: 100%; padding: 12px 14px; background: var(--bg-main); border: 1px solid var(--border-color);
+      color: white; border-radius: 8px; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+    }
+    .control-group select:focus, .control-group input:focus { border-color: var(--accent-green); }
+    
+    .btn-analyze {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border: none;
+      padding: 13px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); transition: transform 0.2s, box-shadow 0.2s; height: 46px; margin-top: 22px; width: 100%;
+    }
+    .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6); }
+
+    .forecast-grid { display: grid; grid-template-columns: 2.3fr 1.2fr; gap: 24px; padding: 30px; }
+    .dash-card {
+      background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color);
+      padding: 24px; position: relative; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .card-title { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+
+    .chart-box { height: 380px; position: relative; }
+    
+    .metrics-stack { display: flex; flex-direction: column; gap: 16px; }
+    .metric-card {
+      background: linear-gradient(145deg, rgba(24,32,48,0.9) 0%, rgba(17,22,34,0.9) 100%);
+      border: 1px solid var(--border-color); border-radius: 10px; padding: 18px;
+      position: relative; transition: transform 0.2s, border-color 0.2s; cursor: pointer;
+    }
+    .metric-card:hover { transform: translateX(4px); border-color: var(--accent-blue); }
+    .metric-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+    .metric-value { font-size: 1.6rem; font-weight: 800; color: var(--accent-green); }
+    .metric-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+
+    .loading-overlay {
+      display: none; position: absolute; inset: 0; background: rgba(7, 9, 14, 0.85);
+      backdrop-filter: blur(4px); z-index: 50; justify-content: center; align-items: center; flex-direction: column; gap: 15px;
+    }
+    .spinner {
+      width: 50px; height: 50px; border: 4px solid var(--border-color); border-top-color: var(--accent-green);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 1024px) {
+      .controls-bar { grid-template-columns: 1fr 1fr; }
+      .forecast-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="forecast-wrapper">
+    <header>
+      <div class="brand-logo">⚡ Advanced AI Crop & Climate Forecast Engine</div>
+      <button class="btn-back" onclick="window.location.href='index.html'">← Back to Main Dashboard</button>
+    </header>
+
+    <div class="controls-bar">
+      <div class="control-group">
+        <label>Target Crop</label>
+        <select id="cropSelect" onchange="runLiveForecastSimulation()">
+          <option value="Potato">🥔 Potato (High Demand)</option>
+          <option value="Tomato">🍅 Tomato (Volatile Pricing)</option>
+          <option value="Wheat">🌾 Wheat (Stable Output)</option>
+          <option value="Paddy">🌿 Paddy / Rice (Monsoon Sensitive)</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Total Land (Acres)</label>
+        <input type="number" id="landInput" value="15" min="1" max="500" oninput="runLiveForecastSimulation()">
+      </div>
+      <div class="control-group">
+        <label>Region / Micro-Climate</label>
+        <select id="regionSelect" onchange="runLiveForecastSimulation()">
+          <option value="North">North India (Alluvial Soil)</option>
+          <option value="South">South India (Red Loam Soil)</option>
+          <option value="West">West India (Black Cotton Soil)</option>
+        </select>
+      </div>
+      <div>
+        <button class="btn-analyze" onclick="triggerAIAnalysisAnimation()">✨ Run AI Analysis</button>
+      </div>
+    </div>
+
+    <div class="forecast-grid">
+      <div class="dash-card">
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="spinner"></div>
+          <p style="font-weight: 600; color: var(--accent-green);">Running Neural Price & Climate Simulation...</p>
+        </div>
+        <div class="card-header">
+          <div class="card-title">📈 30-Day Market Demand & Price Projection</div>
+          <div style="font-size: 0.85rem; color: var(--accent-blue); background: rgba(56,189,248,0.1); padding: 4px 10px; border-radius: 6px;">Live AI Model v4.2</div>
+        </div>
+        <div class="chart-box">
+          <canvas id="forecastChart"></canvas>
+        </div>
+      </div>
+
+      <div class="metrics-stack">
+        <div class="metric-card" style="border-left: 4px solid var(--accent-blue);">
+          <div class="metric-label">⛅ Current Micro-Climate</div>
+          <div class="metric-value" id="weatherTitle" style="color: var(--accent-blue);">Partly Cloudy</div>
+          <div class="metric-sub" id="weatherSub">Rain forecast: Expected in 48 hours</div>
+        </div>
+
+        <div class="metric-card" style="border-left: 4px solid var(--accent-green);">
+          <div class="metric-label">🌱 Optimal Planting Window</div>
+          <div class="metric-value" id="plantingWindow">Oct 15 - Oct 20</div>
+          <div class="metric-sub">Calibrated via live moisture & soil pH sensors.</div>
+        </div>
+
+        <div class="metric-card" style="border-left: 4px solid var(--accent-orange);">
+          <div class="metric-label">📐 Dynamic Acreage Recommendation</div>
+          <div class="metric-value" id="acreageRec" style="color: var(--accent-orange);">10.5 Acres</div>
+          <div class="metric-sub">Optimized to prevent regional market saturation.</div>
+        </div>
+
+        <div class="metric-card" style="border-left: 4px solid var(--accent-purple);">
+          <div class="metric-label">💰 Projected Profit Margin</div>
+          <div class="metric-value" id="profitMargin" style="color: var(--accent-purple);">38.0%</div>
+          <div class="metric-sub">Estimated net ROI based on logistics cost index.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let forecastChartInstance = null;
+
+    window.onload = function() {
+      initForecastChart();
+    };
+
+    function initForecastChart() {
+      const ctx = document.getElementById('forecastChart').getContext('2d');
+      
+      const demandGradient = ctx.createLinearGradient(0, 0, 0, 350);
+      demandGradient.addColorStop(0, 'rgba(52, 211, 153, 0.35)');
+      demandGradient.addColorStop(1, 'rgba(52, 211, 153, 0.0)');
+
+      forecastChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array.from({length: 30}, (_, i) => `Day ${i + 1}`),
+          datasets: [
+            {
+              label: 'Projected Market Demand',
+              data: [105, 104, 108, 101, 107, 106, 114, 113, 114, 124, 122, 125, 122, 127, 123, 134, 130, 137, 143, 139, 139, 148, 140, 152, 151, 142, 159, 156, 155],
+              borderColor: '#34D399',
+              backgroundColor: demandGradient,
+              fill: true,
+              tension: 0.4,
+              borderWidth: 3,
+              pointRadius: 3,
+              pointBackgroundColor: '#34D399'
+            },
+            {
+              label: 'Regional Supply Index',
+              data: [111, 105, 109, 118, 119, 109, 111, 104, 112, 107, 123, 116, 113, 113, 107, 118, 108, 111, 107, 119, 118, 108, 114, 114, 108, 107, 118, 108, 110],
+              borderColor: '#38BDF8',
+              borderDash: [5, 5],
+              tension: 0.4,
+              borderWidth: 2,
+              pointRadius: 2,
+              pointBackgroundColor: '#38BDF8'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#F0F4F8', font: { family: 'sans-serif', weight: '600' } }
+            },
+            tooltip: {
+              backgroundColor: '#182030',
+              titleColor: '#34D399',
+              bodyColor: '#F0F4F8',
+              borderColor: '#2A364F',
+              borderWidth: 1,
+              padding: 12
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(42, 54, 79, 0.4)' },
+              ticks: { color: '#8CA0B3', maxTicksLimit: 10 }
+            },
+            y: {
+              grid: { color: 'rgba(42, 54, 79, 0.4)' },
+              ticks: { color: '#8CA0B3' }
+            }
+          }
+        }
+      });
+    }
+
+    function triggerAIAnalysisAnimation() {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.style.display = 'flex';
+      
+      setTimeout(() => {
+        runLiveForecastSimulation();
+        overlay.style.display = 'none';
+      }, 1000);
+    }
+
+    function runLiveForecastSimulation() {
+      const crop = document.getElementById('cropSelect').value;
+      const land = parseFloat(document.getElementById('landInput').value) || 10;
+      const region = document.getElementById('regionSelect').value;
+
+      let multiplier = crop === 'Tomato' ? 1.4 : (crop === 'Potato' ? 1.0 : 0.8);
+      if (region === 'South') multiplier *= 1.1;
+
+      document.getElementById('acreageRec').innerText = (land * 0.7).toFixed(1) + " Acres";
+      document.getElementById('profitMargin').innerText = (32 + (land % 15) + (crop === 'Tomato' ? 12 : 5)).toFixed(1) + "%";
+
+      if (forecastChartInstance) {
+        const newData = Array.from({length: 30}, (_, i) => Math.floor(100 + Math.sin(i/2 + multiplier) * 25 + (i * 1.2)));
+        const newSupply = Array.from({length: 30}, (_, i) => Math.floor(105 + Math.cos(i/1.5) * 10));
+        
+        forecastChartInstance.data.datasets[0].data = newData;
+        forecastChartInstance.data.datasets[1].data = newSupply;
+        forecastChartInstance.update();
+      }
+    }
+  </script>
+</body>
+</html>

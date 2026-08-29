@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kisaan Link: Direct Farm Marketplace & AI Logistics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Firebase Compatibility SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #0D1117;
+      --panel-bg: #161B22;
+      --card-bg: #1C2128;
+      --border-color: #30363D;
+      --text-main: #E6EDF3;
+      --text-muted: #8B949E;
+      --accent-blue: #2F81F7;
+      --accent-green: #10B981;
+      --accent-orange: #D29922;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); padding: 20px; }
+    .main-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 20px; text-align: center; }
+
+    .dashboard-wrapper {
+      background-color: var(--panel-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      max-width: 1300px;
+      margin: 0 auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 24px; border-bottom: 1px solid var(--border-color); background-color: #010409;
+    }
+    .brand-logo { font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+    .brand-logo span { color: var(--text-muted); font-weight: 400; font-size: 0.95rem; }
+    
+    .nav-items { display: flex; gap: 10px; }
+    .nav-link {
+      background: transparent; border: none; color: var(--text-muted);
+      padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: 500;
+    }
+    .nav-link.active { background-color: rgba(47, 129, 247, 0.1); color: var(--accent-blue); border: 1px solid rgba(47, 129, 247, 0.4); }
+
+    .header-user { position: relative; }
+    .user-profile-badge {
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color);
+      background: var(--card-bg);
+    }
+    .avatar-sm { width: 28px; height: 28px; border-radius: 50%; background-color: var(--accent-green); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; }
+    
+    .profile-dropdown {
+      display: none; position: absolute; right: 0; top: 50px; width: 300px;
+      background: var(--panel-bg); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 100;
+    }
+    .profile-dropdown.active { display: block; }
+    .prof-header { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; }
+    .btn-logout { width: 100%; padding: 8px; background: #DA3633; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 24px; }
+    .dash-card { background-color: var(--card-bg); border-radius: 10px; border: 1px solid var(--border-color); padding: 20px; }
+    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    
+    .fpo-top { display: flex; justify-content: space-between; margin-bottom: 20px; }
+    .stat-row { display: flex; justify-content: space-between; width: 220px; margin-bottom: 8px; font-size: 0.95rem; }
+    .stat-row .val { font-weight: bold; font-size: 1.1rem; }
+    .text-green { color: var(--accent-green); }
+    .btn-blue { background-color: var(--accent-blue); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .search-bar { background: var(--bg-main); border: 1px solid var(--border-color); color: white; padding: 8px 12px; border-radius: 6px; width: 200px; outline: none; }
+    .buyer-metrics { display: flex; justify-content: space-between; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px; }
+    .b-metric h3 { font-size: 2rem; margin: 0; font-weight: 700; color: var(--accent-green); }
+    .b-metric p { color: var(--text-muted); margin: 0; font-size: 0.9rem; }
+
+    .ai-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    .chart-container { height: 180px; position: relative; }
+    .ai-stats { display: flex; flex-direction: column; gap: 15px; }
+    .suggestion-box { background: rgba(210, 153, 34, 0.1); border: 1px solid var(--accent-orange); padding: 10px; border-radius: 6px; font-size: 0.85rem; }
+    .map-box { background: #010409; border: 1px solid var(--border-color); height: 160px; border-radius: 8px; margin-bottom: 15px; position: relative; overflow: hidden; background-image: radial-gradient(#30363D 1px, transparent 1px); background-size: 20px 20px; }
+    .route-line { position: absolute; top: 20px; left: 20px; width: 80%; height: 80%; border: 3px dashed var(--accent-blue); border-radius: 10px; }
+    .route-metrics { display: flex; justify-content: space-between; }
+    .route-metrics h4 { font-size: 1.2rem; margin: 5px 0 0; color: var(--accent-green); }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
+    .auth-card { background: #ffffff; color: #111827; padding: 30px; border-radius: 12px; width: 420px; position: relative; }
+    .auth-card h2 { text-align: center; margin-bottom: 15px; font-size: 1.5rem; }
+    .close-btn { position: absolute; right: 20px; top: 20px; cursor: pointer; font-weight: bold; color: #666; }
+    .auth-tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 20px; }
+    .auth-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-weight: 600; color: #6b7280; }
+    .auth-tab.active { color: #10b981; border-bottom: 2px solid #10b981; }
+    .input-group { margin-bottom: 15px; }
+    .input-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #374151; }
+    .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; outline: none; }
+    .btn-green { width: 100%; background: #10b981; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .auth-footer { text-align: center; margin-top: 15px; font-size: 0.85rem; color: #6b7280; }
+    .auth-footer a { color: #2563eb; cursor: pointer; text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <h1 class="main-title">Kisaan Link: Direct Farm Marketplace & AI Logistics</h1>
+
+  <div class="dashboard-wrapper">
+    <header>
+      <div class="brand-logo">🌱 Kisaan Link <span>| Direct Farm to Table</span></div>
+      <div class="nav-items">
+        <button class="nav-link active">Dashboard</button>
+        <button class="nav-link">FPO Management</button>
+        <button class="nav-link">Logistics & Fleet</button>
+        <button class="nav-link" onclick="window.location.href='forecast.html'">AI Forecasts</button>
+      </div>
+      <div class="header-user">
+        <div class="user-profile-badge" onclick="toggleProfileMenu()">
+          <div class="avatar-sm" id="user-avatar">G</div>
+          <span id="header-user-name">Guest (Login) ▾</span>
+        </div>
+        
+        <div class="profile-dropdown" id="profileDropdown">
+          <div id="logged-out-view">
+            <p style="margin-bottom: 10px; font-size: 0.9rem;">You are currently browsing as a guest.</p>
+            <button class="btn-green" onclick="openAuthModal('login')">Log In</button>
+            <p style="text-align: center; margin-top: 10px; font-size: 0.85rem;">New user? <a onclick="openAuthModal('signup')" style="color:#2563eb; cursor:pointer;">Sign Up</a></p>
+          </div>
+          <div id="logged-in-view" style="display: none;">
+            <div class="prof-header">
+              <h4 id="prof-name">User Name</h4>
+              <p id="prof-role-phone">Role | Details</p>
+            </div>
+            <button class="btn-logout" onclick="logout()">Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <div class="dash-card">
+        <div class="card-title">👥 Farmer & FPO Management</div>
+        <div class="fpo-top">
+          <div>
+            <div class="stat-row"><span>Registered FPOs:</span> <span class="val" id="real-fpo-count">Loading...</span></div>
+            <div class="stat-row"><span>Active Farmers:</span> <span class="val text-green" id="real-farmer-count">Loading...</span></div>
+          </div>
+          <button class="btn-blue">+ ONBOARD NEW FPO</button>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="card-title" style="justify-content: space-between;">
+          🛒 Buyer & Order Overview
+          <input type="text" class="search-bar" placeholder="Find buyers or orders 🔍">
+        </div>
+        <div class="buyer-metrics">
+          <div class="b-metric">
+            <p>Total Orders Placed</p>
+            <h3 id="real-order-count">...</h3>
+          </div>
+          <div class="b-metric" style="text-align: right;">
+            <p>Total Revenue</p>
+            <h3 id="real-revenue-count">₹...</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="card-title">📈 AI-Driven Demand Forecasting</div>
+        <div class="ai-grid">
+          <div>
+            <div class="chart-container"><canvas id="dashChart"></canvas></div>
+          </div>
+          <div class="ai-stats">
+            <div><p style="font-size:0.8rem; color:var(--text-muted)">Accuracy</p><h4 style="color:var(--accent-green)">94.8%</h4></div>
+            <div class="suggestion-box"><strong>Suggestion:</strong> Increase supply in Delhi NCR next week.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="card-title">🚚 Real-Time Route Optimization</div>
+        <div class="map-box"><div class="route-line"></div></div>
+        <div class="route-metrics">
+          <div><p style="font-size:0.8rem; color:var(--text-muted)">Route Efficiency</p><h4 style="color: var(--accent-orange);">96%</h4></div>
+          <div><p style="font-size:0.8rem; color:var(--text-muted)">Fuel Savings</p><h4 style="color: var(--accent-green);">-18%</h4></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="authModal">
+    <div class="auth-card">
+      <span class="close-btn" onclick="closeAuthModal()">✕</span>
+      <h2 id="authTitle">Create Account</h2>
+
+      <div id="signUpView">
+        <div class="auth-tabs">
+          <div class="auth-tab active" id="tabPhone" onclick="switchAuthMethod('phone')">📱 Mobile OTP</div>
+          <div class="auth-tab" id="tabEmail" onclick="switchAuthMethod('email')">✉️ Email Verification</div>
+        </div>
+
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" id="signUpName" placeholder="Your Name">
+        </div>
+        <div class="input-group">
+          <label>Role</label>
+          <select id="signUpRole">
+            <option value="Farmer">Farmer</option>
+            <option value="FPO">FPO Admin</option>
+            <option value="Buyer">Buyer</option>
+          </select>
+        </div>
+
+        <div id="phoneFlow">
+          <div class="input-group">
+            <label>Mobile Number (Include Country Code)</label>
+            <input type="text" id="signUpPhone" placeholder="+919876543210">
+          </div>
+          <div id="recaptcha-container"></div>
+          
+          <div class="input-group" id="otpGroup" style="display: none; margin-top: 10px;">
+            <label>6-Digit OTP Code</label>
+            <input type="text" id="otpInput" placeholder="123456">
+          </div>
+
+          <button class="btn-green" id="sendOtpBtn" onclick="requestFirebaseOtp()">Send OTP 📩</button>
+          <button class="btn-green" id="verifyOtpBtn" onclick="verifyFirebaseOtp()" style="display: none;">Verify OTP & Register 🚀</button>
+        </div>
+
+        <div id="emailFlow" style="display: none;">
+          <div class="input-group">
+            <label>Email Address</label>
+            <input type="email" id="signUpEmail" placeholder="name@example.com">
+          </div>
+          <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="signUpEmailPassword" placeholder="••••••••">
+          </div>
+          <button class="btn-green" onclick="handleEmailRegister()">Verify Email & Register 🚀</button>
+        </div>
+      </div>
+
+      <div id="loginView" style="display: none;">
+        <div class="input-group">
+          <label>Mobile Number or Email</label>
+          <input type="text" id="loginIdentifier" placeholder="+919876543210 or name@example.com">
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+        <button class="btn-green" onclick="handlePasswordLogin()">Log In 🚀</button>
+      </div>
+
+      <div class="auth-footer" id="authFooter">
+        Already have an account? <a onclick="toggleAuthMode('login')">Log In</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let currentMethod = 'phone';
+    let isLoginMode = false;
+    let confirmationResultObj = null;
+
+    async function initFirebase() {
+      try {
+        const response = await fetch(`${API_BASE}/firebase.json`);
+        if (!response.ok) throw new Error("Could not load firebase.json");
+        const firebaseConfig = await response.json();
+        
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+          console.log("🔥 Firebase initialized from firebase.json!");
+        }
+
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+          'size': 'invisible'
+        });
+      } catch (err) {
+        console.warn("⚠️ Firebase Initialization warning:", err.message);
+      }
+    }
+
+    window.onload = async function() {
+      await initFirebase();
+      updateHeaderState();
+      await fetchRealDatabaseStats();
+      renderDashboardChart();
+    };
+
+    function switchAuthMethod(method) {
+      currentMethod = method;
+      document.getElementById('tabPhone').classList.toggle('active', method === 'phone');
+      document.getElementById('tabEmail').classList.toggle('active', method === 'email');
+      document.getElementById('phoneFlow').style.display = method === 'phone' ? 'block' : 'none';
+      document.getElementById('emailFlow').style.display = method === 'email' ? 'block' : 'none';
+    }
+
+    function openAuthModal(mode) {
+      document.getElementById('authModal').style.display = 'flex';
+      toggleAuthMode(mode);
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').style.display = 'none';
+    }
+
+    function toggleAuthMode(mode) {
+      isLoginMode = (mode === 'login');
+      document.getElementById('authTitle').innerText = isLoginMode ? 'Log In' : 'Create Account';
+      document.getElementById('signUpView').style.display = isLoginMode ? 'none' : 'block';
+      document.getElementById('loginView').style.display = isLoginMode ? 'block' : 'none';
+      document.getElementById('authFooter').innerHTML = isLoginMode 
+        ? `Don't have an account? <a onclick="toggleAuthMode('signup')">Sign Up</a>`
+        : `Already have an account? <a onclick="toggleAuthMode('login')">Log In</a>`;
+    }
+
+    async function requestFirebaseOtp() {
+      const phoneNumber = document.getElementById('signUpPhone').value.trim();
+      if (!phoneNumber) return alert("Please enter a valid phone number with country code (e.g. +919876543210)");
+
+      try {
+        const appVerifier = window.recaptchaVerifier;
+        confirmationResultObj = await firebase.auth().signInWithPhoneNumber(phoneNumber, appVerifier);
+        
+        alert("OTP sent via SMS!");
+        document.getElementById('otpGroup').style.display = 'block';
+        document.getElementById('sendOtpBtn').style.display = 'none';
+        document.getElementById('verifyOtpBtn').style.display = 'block';
+      } catch (error) {
+        console.error("SMS Error:", error);
+        alert("Failed to send SMS OTP: " + error.message);
+      }
+    }
+
+    async function verifyFirebaseOtp() {
+      const code = document.getElementById('otpInput').value.trim();
+      if (!code) return alert("Please enter the 6-digit OTP code");
+
+      try {
+        const result = await confirmationResultObj.confirm(code);
+        const fbUser = result.user;
+
+        await completeBackendRegistration({
+          uid: fbUser.uid,
+          name: document.getElementById('signUpName').value || "Farmer User",
+          role: document.getElementById('signUpRole').value,
+          phone: fbUser.phoneNumber,
+          email: null,
+          password: "firebase_otp_verified",
+          auth_provider: "phone_otp"
+        });
+      } catch (error) {
+        alert("Invalid OTP Code: " + error.message);
+      }
+    }
+
+    async function handleEmailRegister() {
+      const email = document.getElementById('signUpEmail').value.trim();
+      const password = document.getElementById('signUpEmailPassword').value;
+
+      if (!email || !password) return alert("Please enter both email and password.");
+
+      try {
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        await userCredential.user.sendEmailVerification();
+        
+        alert("Verification link sent! Check your email inbox to verify.");
+
+        await completeBackendRegistration({
+          uid: userCredential.user.uid,
+          name: document.getElementById('signUpName').value || "User",
+          role: document.getElementById('signUpRole').value,
+          email: email,
+          phone: null,
+          password: password,
+          auth_provider: "email_verified"
+        });
+      } catch (error) {
+        alert("Email Registration Error: " + error.message);
+      }
+    }
+
+    async function completeBackendRegistration(payload) {
+      const response = await fetch(`${API_BASE}/api/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.detail);
+
+      localStorage.setItem('klink_user', JSON.stringify(result.user));
+      updateHeaderState();
+      closeAuthModal();
+      alert("Registration & Verification complete!");
+    }
+
+    async function handlePasswordLogin() {
+      const identifier = document.getElementById('loginIdentifier').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        const response = await fetch(`${API_BASE}/api/login-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, password })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail);
+
+        localStorage.setItem('klink_user', JSON.stringify(result.user));
+        updateHeaderState();
+        closeAuthModal();
+        alert("Logged in successfully!");
+      } catch (err) {
+        alert("Login failed: " + err.message);
+      }
+    }
+
+    function toggleProfileMenu() { document.getElementById('profileDropdown').classList.toggle('active'); }
+
+    function logout() {
+      firebase.auth().signOut();
+      localStorage.removeItem('klink_user');
+      updateHeaderState();
+    }
+
+    function updateHeaderState() {
+      const userStr = localStorage.getItem('klink_user');
+      const loView = document.getElementById('logged-out-view');
+      const liView = document.getElementById('logged-in-view');
+      
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        document.getElementById('header-user-name').innerText = `${user.name} (${user.role}) ▾`;
+        document.getElementById('user-avatar').innerText = user.name.charAt(0).toUpperCase();
+        document.getElementById('prof-name').innerText = user.name;
+        document.getElementById('prof-role-phone').innerText = `${user.role} | ${user.phone || user.email}`;
+        loView.style.display = 'none';
+        liView.style.display = 'block';
+      } else {
+        document.getElementById('header-user-name').innerText = `Guest (Login) ▾`;
+        document.getElementById('user-avatar').innerText = 'G';
+        loView.style.display = 'block';
+        liView.style.display = 'none';
+      }
+    }
+
+    async function fetchRealDatabaseStats() {
+      try {
+        const response = await fetch(`${API_BASE}/api/dashboard-stats`);
+        if (!response.ok) throw new Error("Failed to fetch live stats");
+        
+        const data = await response.json();
+        document.getElementById('real-fpo-count').innerText = data.fpos;
+        document.getElementById('real-farmer-count').innerText = data.farmers;
+        document.getElementById('real-order-count').innerText = data.totalOrders;
+        
+        document.getElementById('real-revenue-count').innerText = new Intl.NumberFormat('en-IN', {
+          style: 'currency', currency: 'INR', maximumFractionDigits: 0
+        }).format(data.revenue);
+      } catch (e) {
+        console.error("Error loading real-time stats:", e);
+        document.getElementById('real-fpo-count').innerText = "0";
+        document.getElementById('real-farmer-count').innerText = "0";
+        document.getElementById('real-order-count').innerText = "0";
+        document.getElementById('real-revenue-count').innerText = "₹0";
+      }
+    }
+
+    function renderDashboardChart() {
+      const ctx = document.getElementById('dashChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['D1', 'D12', 'D24', 'D30'],
+          datasets: [{ data: [10, 25, 20, 50], borderColor: '#D29922', tension: 0.4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+      });
+    }
+  </script>
+</body>
+</html>
